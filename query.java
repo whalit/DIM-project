@@ -1,5 +1,7 @@
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 // Represents a term that can be a variable or a constant
 class Term {
@@ -87,6 +89,86 @@ class ConjunctiveQuery {
             }
         }
         return sb.toString();
+    }
+
+    public HyperGraph buildHyperGraph() {
+        HyperGraph hyperGraph = new HyperGraph();
+
+        // Add hyperedges for body atoms
+        for (Atom atom : body) {
+            Set<String> hyperedge = new HashSet<>();
+            for (Term term : atom.getTerms()) {
+                if (term.isVariable()) {
+                    hyperedge.add(term.getValue());
+                }
+            }
+            hyperGraph.addHyperedge(hyperedge);
+        }
+
+        return hyperGraph;
+    }
+}
+public class HyperGraph {
+    private Set<Set<String>> hyperedges;
+    private Set<String> nodes;
+
+    public HyperGraph() {
+        this.hyperedges = new HashSet<>();
+        this.nodes = new HashSet<>();
+    }
+
+    public void addHyperedge(Set<String> hyperedge) {
+        hyperedges.add(new HashSet<>(hyperedge));
+        nodes.addAll(hyperedge);
+    }
+
+    public void printHyperGraph() {
+        System.out.println("Hyperedges:");
+        for (Set<String> hyperedge : hyperedges) {
+            System.out.println(hyperedge);
+        }
+
+        System.out.println("Nodes: " + nodes);
+    }
+
+    // Check if the hypergraph is α-acyclic using the GYO algorithm
+    public boolean isAlphaAcyclic() {
+        Set<Set<String>> gyoReduction = new HashSet<>(hyperedges);
+
+        boolean removed;
+        do {
+            removed = false;
+
+            Iterator<Set<String>> iterator = gyoReduction.iterator();
+            while (iterator.hasNext()) {
+                Set<String> ear = iterator.next();
+
+                if (isEar(ear, gyoReduction)) {
+                    iterator.remove();
+                    removed = true;
+                }
+            }
+        } while (removed);
+
+        // If the GYO-reduction is empty, the hypergraph is α-acyclic
+        return gyoReduction.isEmpty();
+    }
+
+    // Check if a set is an ear in the hypergraph
+    private boolean isEar(Set<String> ear, Set<Set<String>> hypergraph) {
+        Set<Set<String>> subgraph = new HashSet<>(hypergraph);
+        subgraph.remove(ear);
+
+        Set<String> endpoints = new HashSet<>();
+        for (Set<String> edge : subgraph) {
+            endpoints.addAll(edge);
+        }
+
+        Set<String> intersection = new HashSet<>(ear);
+        intersection.retainAll(endpoints);
+
+        // An ear is a set with exactly two common endpoints with the subgraph
+        return intersection.size() == 2;
     }
 }
 
